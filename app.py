@@ -89,18 +89,53 @@ if STATIC_DIR.exists():
 #  Blink Auth-Hilfsfunktionen
 # ──────────────────────────────────────────────
 
+# Felder, die niemals auf die Platte geschrieben werden.
+# Das Passwort wird für die Token-Erneuerung nicht benötigt: blinkpy nutzt
+# dafür ausschließlich den refresh_token. Es zu speichern würde es nur im
+# Klartext auf der Platte ablegen.
+_SECRET_FIELDS = ("password",)
+
+
 def load_credentials() -> Optional[Dict]:
-    if CREDENTIALS_FILE.exists():
-        with open(CREDENTIALS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return None
+    if not CREDENTIALS_FILE.exists():
+        return None
+    with open(CREDENTIALS_FILE, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    # Altbestand bereinigen: frühere Versionen haben das Passwort im Klartext
+    # mitgespeichert. Beim ersten Start einer neuen Version wird es entfernt.
+    if any(k in data for k in _SECRET_FIELDS):
+        data = {k: v for k, v in data.items() if k not in _SECRET_FIELDS}
+        try:
+            with open(CREDENTIALS_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            log.warning("Gespeichertes Passwort aus %s entfernt. "
+                        "Falls diese Datei je geteilt wurde: Blink-Passwort ändern!",
+                        CREDENTIALS_FILE.name)
+        except Exception as exc:
+            log.warning("Bereinigung der Anmeldedaten fehlgeschlagen: %s", exc)
+    return data
+
+
+def _sanitized_credentials(auth: Auth) -> Dict:
+    """Anmeldedaten ohne Passwort – alles, was für einen Token-Refresh nötig ist."""
+    return {k: v for k, v in auth.login_attributes.items() if k not in _SECRET_FIELDS}
+
+
+def _write_credentials(auth: Auth) -> None:
+    """Schreibt die Anmeldedaten mit restriktiven Dateirechten (nur Eigentümer)."""
+    CREDENTIALS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(CREDENTIALS_FILE, "w", encoding="utf-8") as f:
+        json.dump(_sanitized_credentials(auth), f, indent=2)
+    try:
+        os.chmod(CREDENTIALS_FILE, 0o600)  # unter Windows wirkungslos, aber unschädlich
+    except OSError:
+        pass
 
 
 def save_credentials(blink: Blink) -> None:
-    cred = blink.auth.login_attributes
-    with open(CREDENTIALS_FILE, "w", encoding="utf-8") as f:
-        json.dump(cred, f, indent=2)
-    log.info("Credentials gespeichert.")
+    _write_credentials(blink.auth)
+    log.info("Anmeldedaten gespeichert (ohne Passwort).")
 
 
 def _make_token_callback(auth: Auth):
@@ -112,9 +147,8 @@ def _make_token_callback(auth: Auth):
     """
     def _cb() -> None:
         try:
-            with open(CREDENTIALS_FILE, "w", encoding="utf-8") as f:
-                json.dump(auth.login_attributes, f, indent=2)
-            log.info("Token erneuert – Credentials aktualisiert.")
+            _write_credentials(auth)
+            log.info("Token erneuert – Anmeldedaten aktualisiert.")
         except Exception as exc:
             log.warning("Token-Callback: Speichern fehlgeschlagen: %s", exc)
     return _cb
@@ -452,7 +486,6 @@ async def _background_poll_loop():
                 log.info("Hintergrund-Refresh: %d Videos.", count)
         except Exception as exc:
             log.warning("Hintergrund-Refresh fehlgeschlagen: %s", exc)
-            await handle_possible_auth_error(exc)
             await handle_possible_auth_error(exc)
 
 
