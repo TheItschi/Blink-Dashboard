@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blink – Anmelden</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.ico">
+<style>
+  :root {
+    --bg:       #0d0f14;
+    --surface:  #161b27;
+    --border:   #252d40;
+    --accent:   #3b82f6;
+    --accent-h: #2563eb;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --error:    #ef4444;
+    --success:  #22c55e;
+    --mono:     'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    --sans:     'Inter', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+
+  /* subtle grid pattern */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .card {
+    position: relative; z-index: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2.5rem 2.5rem 2rem;
+    width: 100%; max-width: 420px;
+    box-shadow: 0 0 60px rgba(59,130,246,.08), 0 20px 40px rgba(0,0,0,.5);
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: .75rem;
+    margin-bottom: 2rem;
+  }
+  .logo-icon {
+    width: 40px; height: 40px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo-icon svg { width: 22px; height: 22px; fill: #fff; }
+  .logo-text { font-size: 1.25rem; font-weight: 700; letter-spacing: -.02em; }
+  .logo-sub  { font-size: .75rem; color: var(--muted); font-family: var(--mono); margin-top: 1px; }
+
+  h2 {
+    font-size: 1.1rem; font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: var(--text);
+  }
+
+  label {
+    display: block;
+    font-size: .8rem; font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase; letter-spacing: .06em;
+    margin-bottom: .4rem;
+  }
+  input[type=email], input[type=password], input[type=text] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: .95rem;
+    padding: .7rem 1rem;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+    margin-bottom: 1.1rem;
+  }
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59,130,246,.18);
+  }
+
+  .btn {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: .75rem;
+    font-size: 1rem; font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+    margin-top: .25rem;
+  }
+  .btn:hover  { background: var(--accent-h); }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .msg {
+    border-radius: 8px;
+    padding: .65rem .9rem;
+    font-size: .85rem;
+    margin-bottom: 1rem;
+    display: none;
+  }
+  .msg.error   { background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.3); color: #fca5a5; }
+  .msg.info    { background: rgba(59,130,246,.12); border: 1px solid rgba(59,130,246,.3); color: #93c5fd; }
+  .msg.success { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.3);  color: #86efac; }
+
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .pin-hint {
+    font-size: .82rem; color: var(--muted);
+    margin-bottom: 1.1rem; line-height: 1.5;
+  }
+
+  .spinner {
+    display: inline-block; width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    vertical-align: middle; margin-right: .4rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+    </div>
+    <div>
+      <div class="logo-text">Blink Dashboard</div>
+      <div class="logo-sub">Outdoor 4 · Sync Module 2</div>
+    </div>
+  </div>
+
+  <div id="msg" class="msg"></div>
+  {% if session_expired and not pending_2fa %}
+  <div class="msg info" style="display:block">Die Sitzung ist abgelaufen. Bitte melde dich erneut an.</div>
+  {% endif %}
+
+  <!-- Step 1: Login -->
+  <div id="step-login" class="step {% if not pending_2fa %}active{% endif %}">
+    <h2>Anmelden</h2>
+    <label for="email">E-Mail</label>
+    <input type="email" id="email" placeholder="deine@email.de" autocomplete="username">
+    <label for="password">Passwort</label>
+    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+    <button class="btn" id="btn-login" onclick="doLogin()">Anmelden</button>
+  </div>
+
+  <!-- Step 2: 2FA -->
+  <div id="step-2fa" class="step {% if pending_2fa %}active{% endif %}">
+    <h2>Zwei-Faktor-Bestätigung</h2>
+    <p class="pin-hint">Blink hat einen Bestätigungscode an deine E-Mail-Adresse gesendet. Bitte gib ihn hier ein.</p>
+    <label for="pin">Code</label>
+    <input type="text" id="pin" placeholder="123456" maxlength="8" autocomplete="one-time-code" inputmode="numeric">
+    <button class="btn" id="btn-2fa" onclick="do2fa()">Bestätigen</button>
+  </div>
+</div>
+
+<script>
+  // Auto-focus
+  document.getElementById('{% if pending_2fa %}pin{% else %}email{% endif %}').focus();
+
+  function showMsg(text, type='error') {
+    const el = document.getElementById('msg');
+    el.textContent = text;
+    el.className = 'msg ' + type;
+    el.style.display = 'block';
+  }
+  function hideMsg() { document.getElementById('msg').style.display = 'none'; }
+
+  function setLoading(btnId, loading) {
+    const btn = document.getElementById(btnId);
+    if (loading) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Bitte warten …';
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = btnId === 'btn-login' ? 'Anmelden' : 'Bestätigen';
+    }
+  }
+
+  document.getElementById('password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+  document.getElementById('pin').addEventListener('keydown', e => {
+    if (e.key === 'Enter') do2fa();
+  });
+
+  async function doLogin() {
+    hideMsg();
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    if (!email || !password) { showMsg('Bitte E-Mail und Passwort eingeben.'); return; }
+
+    setLoading('btn-login', true);
+    const res  = await fetch('/api/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password}),
+    });
+    const data = await res.json();
+    setLoading('btn-login', false);
+
+    if (data.ok) {
+      showMsg('Anmeldung erfolgreich. Weiterleitung …', 'success');
+      setTimeout(() => window.location.href = '/dashboard', 800);
+    } else if (data.needs_2fa) {
+      document.getElementById('step-login').classList.remove('active');
+      document.getElementById('step-2fa').classList.add('active');
+      showMsg('Bestätigungscode an deine E-Mail gesendet.', 'info');
+      setTimeout(() => document.getElementById('pin').focus(), 50);
+    } else {
+      showMsg(data.error || 'Anmeldung fehlgeschlagen.');
+    }
+  }
+
+  async function do2fa() {
+    hideMsg();
+    const pin = document.getElementById('pin').value.trim();
+    if (!pin) { showMsg('Bitte den Code eingeben.'); return; }
+
+    setLoading('btn-2fa', true);
+    const res  = await fetch('/api/2fa', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({pin}),
+    });
+    const data = await res.json();
+    setLoading('btn-2fa', false);
+
+    if (data.ok) {
+      showMsg('Erfolgreich bestätigt. Weiterleitung …', 'success');
+      setTimeout(() => window.location.href = '/dashboard', 800);
+    } else {
+      showMsg(data.error || 'Ungültiger Code. Bitte erneut versuchen.');
+    }
+  }
+</script>
+</body>
+</html>

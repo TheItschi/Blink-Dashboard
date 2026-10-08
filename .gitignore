@@ -1,0 +1,52 @@
+# ── Sensible Laufzeitdaten – NIEMALS committen ────────────
+# Enthält ein gültiges Blink-Zugriffstoken
+blink_credentials.json
+*credentials*.json
+data/
+
+# ── Generierte Dateien ────────────────────────────────────
+thumb_cache/
+video_cache/
+*.log
+
+# ── ffmpeg (separat beziehen, eigene Lizenz) ──────────────
+ffmpeg/
+ffmpeg.exe
+ffprobe.exe
+
+# ── Python ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Virtuelle Umgebungen
+.venv/
+venv/
+env/
+ENV/
+
+# uv / pip
+.python-version
+uv.lock
+
+# ── Umgebungsvariablen ────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── IDE / Editor ──────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+
+# ── Betriebssystem ────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini

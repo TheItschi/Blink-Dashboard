@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Blink Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.ico">
+<style>
+  :root {
+    --bg:        #0d0f14;
+    --surface:   #161b27;
+    --surface2:  #1e2535;
+    --border:    #252d40;
+    --border2:   #2f3a52;
+    --accent:    #3b82f6;
+    --accent-h:  #2563eb;
+    --accent-dim:#1e3a5f;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --muted2:    #94a3b8;
+    --success:   #22c55e;
+    --warn:      #f59e0b;
+    --danger:    #ef4444;
+    --mono:      'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    --sans:      'Inter', system-ui, sans-serif;
+    --r:         10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+  }
+
+  /* ── Top Bar ── */
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,15,20,.9);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 1.5rem;
+    padding-left: max(1.5rem, env(safe-area-inset-left));
+    padding-right: max(1.5rem, env(safe-area-inset-right));
+    min-height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .5rem 1rem;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 1rem; flex-shrink: 0; }
+  .topbar-right { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+  .btn-label { display: inline; }  .logo {
+    display: flex; align-items: center; gap: .6rem;
+    font-weight: 700; font-size: 1rem; letter-spacing: -.02em;
+    text-decoration: none; color: var(--text);
+  }
+  .logo-dot {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-dot svg { width: 16px; height: 16px; fill: #fff; }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: .7rem;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid rgba(59,130,246,.25);
+    border-radius: 5px;
+    padding: 2px 7px;
+    white-space: nowrap;
+  }
+
+  .topbar-right { display: flex; align-items: center; gap: .6rem; }
+
+  .btn-sm {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--muted2);
+    border-radius: 7px;
+    padding: .35rem .75rem;
+    font-size: .82rem; font-weight: 500;
+    cursor: pointer;
+    display: flex; align-items: center; gap: .4rem;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .btn-sm:hover { background: var(--border2); color: var(--text); }
+  .btn-sm.primary {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+  }
+  .btn-sm.primary:hover { background: var(--accent-h); }
+  .btn-sm svg { width: 14px; height: 14px; fill: currentColor; flex-shrink: 0; }
+
+  .spinner-sm {
+    display: inline-block; width: 13px; height: 13px;
+    border: 2px solid rgba(255,255,255,.25);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Main Layout ── */
+  .main { max-width: 1400px; margin: 0 auto; padding: 1.5rem 1.5rem 4rem; }
+
+  /* ── Status Strip ── */
+  .status-strip {
+    display: flex; align-items: center; gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+    padding: .75rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+  }
+  .cam-chip {
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .8rem; color: var(--muted2);
+  }
+  .cam-chip .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 6px var(--success);
+    flex-shrink: 0;
+  }
+  .cam-chip .dot.warn { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
+
+  /* Bewegungserkennung Toggle */
+  .motion-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 34px; height: 18px;
+    border-radius: 10px;
+    background: var(--border2);
+    cursor: pointer;
+    transition: background .2s;
+    flex-shrink: 0;
+    border: none;
+    padding: 0;
+  }
+  .motion-toggle.on { background: var(--success); }
+  .motion-toggle .knob {
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  }
+  .motion-toggle.on .knob { transform: translateX(16px); }
+  .motion-toggle:disabled { opacity: .5; cursor: wait; }
+  .motion-label {
+    font-size: .7rem; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+  .chip-name { font-weight: 600; color: var(--text); }
+  .chip-meta { font-family: var(--mono); font-size: .72rem; }
+  .sep { color: var(--border2); }
+
+  /* ── Filter Bar ── */
+  .filter-bar {
+    display: flex; align-items: center; gap: .75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+  .filter-label { font-size: .8rem; color: var(--muted); white-space: nowrap; }
+
+  .filter-tabs { display: flex; gap: .4rem; flex-wrap: wrap; }
+  .tab {
+    padding: .3rem .8rem;
+    border-radius: 20px;
+    font-size: .82rem; font-weight: 500;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--muted2);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .tab:hover { border-color: var(--accent); color: var(--accent); }
+  .tab.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .days-select {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--muted2);
+    border-radius: 7px;
+    padding: .3rem .6rem;
+    font-size: .82rem;
+    cursor: pointer;
+    outline: none;
+    margin-left: auto;
+  }
+  .days-select:focus { border-color: var(--accent); color: var(--text); }
+
+  /* ── Section Header ── */
+  .section-head {
+    display: flex; align-items: center; gap: .75rem;
+    margin-bottom: 1rem; margin-top: 1.5rem;
+  }
+  .section-head h2 {
+    font-size: .9rem; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--muted2);
+  }
+  .section-head .count {
+    font-family: var(--mono); font-size: .75rem;
+    background: var(--border2); border-radius: 20px;
+    padding: 1px 8px; color: var(--muted);
+  }
+  .divider { flex: 1; height: 1px; background: var(--border); }
+
+  /* ── Video Grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color .2s, transform .15s, box-shadow .2s;
+    position: relative;
+  }
+  .card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 1px var(--accent), 0 8px 24px rgba(59,130,246,.15);
+  }
+
+  /* thumbnail area */
+  .thumb-wrap {
+    position: relative;
+    background: #0a0c12;
+    aspect-ratio: 16/9;
+    overflow: hidden;
+  }
+  .thumb-wrap img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: opacity .2s;
+  }
+  .thumb-wrap img.hidden { opacity: 0; }
+
+  .thumb-placeholder {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--border2);
+    flex-direction: column; gap: .5rem;
+  }
+  .thumb-placeholder svg { width: 40px; height: 40px; fill: currentColor; }
+  .thumb-loading {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .9s linear infinite;
+  }
+
+  /* play overlay */
+  .play-overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0);
+    transition: background .2s;
+  }
+  .card:hover .play-overlay { background: rgba(0,0,0,.35); }
+  .play-btn {
+    width: 48px; height: 48px;
+    background: rgba(59,130,246,.9);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transform: scale(.8);
+    transition: opacity .2s, transform .2s;
+    box-shadow: 0 0 20px rgba(59,130,246,.5);
+  }
+  .card:hover .play-btn { opacity: 1; transform: scale(1); }
+  .play-btn svg { width: 20px; height: 20px; fill: #fff; margin-left: 3px; }
+
+  /* card meta */
+  .card-body { padding: .75rem .9rem; }
+  .card-ts {
+    font-family: var(--mono); font-size: .8rem; color: var(--muted2);
+    display: flex; align-items: center; gap: .4rem;
+  }
+  .card-ts svg { width: 12px; height: 12px; fill: var(--muted); flex-shrink: 0; }
+  .card-actions {
+    display: flex; gap: .4rem; margin-top: .6rem;
+  }
+  .card-btn {
+    flex: 1; padding: .35rem;
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 6px; color: var(--muted2);
+    font-size: .75rem; font-weight: 500;
+    cursor: pointer; text-align: center;
+    display: flex; align-items: center; justify-content: center; gap: .3rem;
+    transition: all .15s; text-decoration: none;
+  }
+  .card-btn svg { width: 12px; height: 12px; fill: currentColor; flex-shrink: 0; }
+  .card-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .card-btn.danger:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+  /* "new" ribbon */
+  .ribbon {
+    position: absolute; top: 8px; right: 8px;
+    background: var(--accent);
+    color: #fff; font-size: .65rem; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase;
+    border-radius: 4px; padding: 2px 6px;
+  }
+
+  /* ── Empty State ── */
+  .empty {
+    grid-column: 1 / -1;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 1rem; padding: 4rem 1rem;
+    color: var(--muted);
+  }
+  .empty svg { width: 48px; height: 48px; fill: var(--border2); }
+  .empty p { font-size: .95rem; }
+
+  /* ── Video Player Modal ── */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,.85);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 1rem;
+  }
+  .modal-backdrop.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    width: 100%; max-width: 880px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.7);
+    overflow: hidden;
+    animation: pop-in .2s ease;
+  }
+  @keyframes pop-in {
+    from { opacity: 0; transform: scale(.95) translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .modal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .9rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-title { font-size: .9rem; font-weight: 600; }
+  .modal-ts    { font-family: var(--mono); font-size: .78rem; color: var(--muted); margin-top: 2px; }
+  .modal-close {
+    width: 32px; height: 32px;
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 8px; color: var(--muted2);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all .15s; flex-shrink: 0;
+  }
+  .modal-close:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+  .modal-close svg { width: 14px; height: 14px; fill: currentColor; }
+
+  .modal-video {
+    background: #000;
+    aspect-ratio: 16/9;
+    width: 100%;
+    display: block;
+  }
+
+  .modal-foot {
+    padding: .75rem 1.2rem;
+    display: flex; align-items: center; justify-content: flex-end; gap: .6rem;
+  }
+
+  /* ── Refresh overlay ── */
+  .refreshing {
+    position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 300;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: .6rem 1rem;
+    display: flex; align-items: center; gap: .6rem;
+    font-size: .82rem; color: var(--accent);
+    box-shadow: 0 4px 20px rgba(59,130,246,.2);
+    display: none;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .topbar { padding: 0 .75rem; gap: .4rem; }
+    .main   { padding: 1rem .75rem 4rem; }
+    .status-strip { gap: .5rem; }
+    .badge, .chip-meta { display: none; }
+    /* Buttons: nur Icon, kein Text */
+    .btn-label { display: none; }
+    .btn-sm { padding: .35rem .5rem; }
+    /* Countdown kürzer */
+    .countdown-text { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Top Bar ───────────────────────────── -->
+<header class="topbar">
+  <div class="topbar-left">
+    <a class="logo" href="/dashboard">
+      <div class="logo-dot">
+        <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+      </div>
+      Blink Dashboard
+    </a>
+    <span class="badge">Outdoor 4 · Sync 2</span>
+  </div>
+  <div class="topbar-right">
+    <span style="font-size:.75rem;color:var(--muted);font-family:var(--mono);display:flex;align-items:center;gap:.35rem;">
+      <svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:currentColor;flex-shrink:0;"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+      <span class="countdown-text">Aktualisierung in </span><span id="refresh-countdown">{{ poll_interval }}</span>s
+    </span>
+    <button class="btn-sm primary" onclick="doRefresh(this)" title="Videos neu laden">
+      <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+      <span class="btn-label">Aktualisieren</span>
+    </button>
+    <button class="btn-sm" id="btn-delete-all" onclick="deleteAll()" title="Alle Videos löschen" style="color:#f87171;border-color:#7f1d1d">
+      <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+      <span class="btn-label">Alle löschen</span>
+    </button>
+    <button class="btn-sm" onclick="doLogout()" title="Abmelden">
+      <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+      <span class="btn-label">Abmelden</span>
+    </button>
+  </div>
+</header>
+
+<!-- ── Main ──────────────────────────────── -->
+<main class="main">
+
+  <!-- System Scharf/Unscharf (Schloss-Symbol in der Blink-App) -->
+  {% if sync_names %}
+  <div class="status-strip" id="sync-strip" style="margin-bottom:.75rem;">
+    <span style="font-size:.78rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;">System</span>
+    {% for sname in sync_names %}
+    <div class="cam-chip">
+      <span class="chip-name">{{ sname }}</span>
+      <span class="motion-label">Scharf</span>
+      <button class="motion-toggle" id="sync-arm-{{ loop.index }}"
+              onclick="toggleSyncArm(this, '{{ sname }}')"
+              title="System scharf/unscharf schalten">
+        <span class="knob"></span>
+      </button>
+    </div>
+    {% if not loop.last %}<span class="sep">·</span>{% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Camera Status -->
+  {% if cameras %}
+  <div class="status-strip" id="status-strip">
+    <span style="font-size:.78rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Kameras</span>
+    {% for cam in cameras %}
+    <div class="cam-chip">
+      <div class="dot"></div>
+      <span class="chip-name">{{ cam }}</span>
+      <span class="chip-meta">—</span>
+      <span class="motion-label">Bewegung</span>
+      <button class="motion-toggle" id="motion-{{ loop.index }}"
+              onclick="toggleMotion(this, '{{ cam }}')"
+              title="Bewegungserkennung dieser Kamera umschalten">
+        <span class="knob"></span>
+      </button>
+    </div>
+    {% if not loop.last %}<span class="sep">·</span>{% endif %}
+    {% endfor %}
+    <span style="margin-left:auto;font-family:var(--mono);font-size:.75rem;color:var(--muted)">{{ total }} Clips</span>
+  </div>
+  {% endif %}
+
+  <!-- Filter -->
+  <div class="filter-bar">
+    <span class="filter-label">Kamera:</span>
+    <div class="filter-tabs">
+      <button class="tab active" data-cam="all" onclick="filterCam(this)">Alle</button>
+      {% for cam in cameras %}
+      <button class="tab" data-cam="{{ cam }}" onclick="filterCam(this)">{{ cam }}</button>
+      {% endfor %}
+    </div>
+    <select class="days-select" onchange="changeDays(this.value)" title="Zeitraum">
+      {% for d in [7, 14, 30, 60, 90] %}
+      <option value="{{ d }}" {% if d == days %}selected{% endif %}>Letzte {{ d }} Tage</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <!-- Video Grid (all cameras, hidden per filter) -->
+  {% if videos %}
+    {% for cam in cameras %}
+    <div class="cam-section" data-cam="{{ cam }}">
+      <div class="section-head">
+        <h2>{{ cam }}</h2>
+        <span class="count">{{ by_camera[cam]|length }}</span>
+        <div class="divider"></div>
+      </div>
+      <div class="grid">
+        {% for v in by_camera[cam] %}
+        {% set idx = loop.index0 %}
+        <div class="card" onclick="openModal('{{ v._proxy_url }}', '{{ v.device_name }}', '{{ v._ts_display }}', '{{ v._download_url }}')">
+          <div class="thumb-wrap">
+            <div class="thumb-placeholder" id="ph-{{ v._clip_id }}">
+              <div class="thumb-loading"></div>
+            </div>
+            {% if v._thumb_url %}
+            <img src="{{ v._thumb_url }}"
+                 loading="lazy"
+                 alt="Vorschau {{ v.device_name }}"
+                 style="opacity:0;transition:opacity .35s"
+                 onload="this.style.opacity=1; document.getElementById('ph-{{ v._clip_id }}').style.display='none'"
+                 onerror="this.style.display='none'; var ph=document.getElementById('ph-{{ v._clip_id }}'); ph.innerHTML='<svg viewBox=\'0 0 24 24\'><path d=\'M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z\'/></svg>'">
+            {% endif %}
+            <div class="play-overlay">
+              <div class="play-btn">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+            </div>
+            {% if loop.index <= 3 %}
+            <div class="ribbon">Neu</div>
+            {% endif %}
+          </div>
+          <div class="card-body">
+            <div class="card-ts">
+              <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+              {{ v._ts_display }}
+            </div>
+            <div class="card-actions">
+              <button class="card-btn" onclick="event.stopPropagation(); openModal('{{ v._proxy_url }}', '{{ v.device_name }}', '{{ v._ts_display }}', '{{ v._download_url }}')">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                Abspielen
+              </button>
+              <a class="card-btn" href="{{ v._download_url }}" onclick="event.stopPropagation()" download>
+                <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                Download
+              </a>
+              {% if v._clip_id is defined %}
+              <button class="card-btn danger" onclick="event.stopPropagation(); deleteVideo(this, {{ v._clip_id }}, '{{ v._sync_name }}')" title="Video löschen">
+                <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+              </button>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="grid">
+    <div class="empty">
+      <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+      <p>Keine Videos für den gewählten Zeitraum gefunden.</p>
+      <button class="btn-sm primary" onclick="changeDays(90)">Letzten 90 Tage anzeigen</button>
+    </div>
+  </div>
+  {% endif %}
+
+</main>
+
+<!-- ── Video Modal ────────────────────────── -->
+<div class="modal-backdrop" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="modal-title">–</div>
+        <div class="modal-ts"   id="modal-ts">–</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+    </div>
+    <video class="modal-video" id="modal-video" controls preload="metadata"></video>
+    <div class="modal-foot">
+      <a class="btn-sm" id="modal-dl-btn" href="#" download>
+        <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        Herunterladen
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Refresh Toast ──────────────────────── -->
+<div class="refreshing" id="refresh-toast">
+  <span class="spinner-sm"></span>
+  Videos werden geladen …
+</div>
+
+<script>
+  // ── Kamera-Filter ──────────────────────────
+  function filterCam(btn) {
+    const cam = btn.dataset.cam;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.cam-section').forEach(s => {
+      s.style.display = (cam === 'all' || s.dataset.cam === cam) ? '' : 'none';
+    });
+  }
+
+  // ── Zeitraum ändern ────────────────────────
+  function changeDays(val) {
+    window.location.href = `/dashboard?days=${val}`;
+  }
+
+  // ── Refresh ───────────────────────────────
+  async function doRefresh(btn) {
+    const toast = document.getElementById('refresh-toast');
+    toast.style.display = 'flex';
+    btn.disabled = true;
+    try {
+      await fetch('/api/refresh', { method: 'POST' });
+      window.location.reload();
+    } catch {
+      toast.style.display = 'none';
+      btn.disabled = false;
+    }
+  }
+
+  // ── Logout ────────────────────────────────
+  async function doLogout() {
+    await fetch('/api/logout', { method: 'POST' });
+    window.location.href = '/';
+  }
+
+  // ── Modal ─────────────────────────────────
+  const modal    = document.getElementById('modal');
+  const video    = document.getElementById('modal-video');
+  const mTitle   = document.getElementById('modal-title');
+  const mTs      = document.getElementById('modal-ts');
+  const mDlBtn   = document.getElementById('modal-dl-btn');
+
+  function openModal(proxyUrl, camName, ts, dlUrl) {
+    mTitle.textContent = camName;
+    mTs.textContent    = ts;
+    video.src          = proxyUrl;
+    mDlBtn.href = dlUrl;
+    modal.classList.add('open');
+    video.play().catch(() => {});
+  }
+
+  function closeModal(e) {
+    if (e && e.target !== modal) return;
+    video.pause();
+    video.src = '';
+    modal.classList.remove('open');
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal(null) || closeModal({target: modal});
+  });
+  // Esc always closes
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && modal.classList.contains('open')) {
+      video.pause(); video.src = '';
+      modal.classList.remove('open');
+    }
+  });
+
+  // Verhindert den automatischen Seiten-Reload während eines Löschvorgangs
+  let deleteInProgress = false;
+
+  // ── Einzelnes Video löschen ───────────────
+  async function deleteVideo(btn, clipId, syncName) {
+    if (!confirm('Dieses Video wirklich vom Sync Module löschen?')) return;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-sm"></span>';
+    deleteInProgress = true;
+    try {
+      const res  = await fetch(`/api/video?clip_id=${clipId}&sync=${encodeURIComponent(syncName)}`, { method: 'DELETE' });
+      const data = await res.json();
+      deleteInProgress = false;
+      if (data.ok) {
+        const card = btn.closest('.card');
+        card.style.transition = 'opacity .3s, transform .3s';
+        card.style.opacity = '0';
+        card.style.transform = 'scale(.95)';
+        setTimeout(() => card.remove(), 300);
+      } else {
+        alert('Fehler: ' + (data.detail || 'Unbekannter Fehler'));
+        btn.disabled = false;
+        btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>';
+      }
+    } catch (e) {
+      deleteInProgress = false;
+      alert('Netzwerkfehler: ' + e);
+      btn.disabled = false;
+    }
+  }
+
+  // ── Alle Videos löschen ───────────────────
+  async function deleteAll() {
+    const total = document.querySelectorAll('.card').length;
+    if (total === 0) return;
+    if (!confirm(`Wirklich alle ${total} Videos vom Sync Module löschen?\nDiese Aktion kann nicht rückgängig gemacht werden.`)) return;
+
+    const btn = document.getElementById('btn-delete-all');
+    const resetBtn = () => {
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg><span class="btn-label">Alle löschen</span>';
+    };
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-sm"></span> Wird gelöscht …';
+
+    // Automatischen Seiten-Reload pausieren, solange gelöscht wird
+    deleteInProgress = true;
+
+    try {
+      const res  = await fetch('/api/videos/all', { method: 'DELETE' });
+      const data = await res.json();
+      if (!data.ok) {
+        alert('Löschen konnte nicht gestartet werden.');
+        deleteInProgress = false;
+        resetBtn();
+        return;
+      }
+
+      // Der Vorgang läuft im Hintergrund – Fortschritt pollen
+      while (true) {
+        await new Promise(r => setTimeout(r, 1500));
+        let st;
+        try {
+          const sres = await fetch('/api/videos/delete-status');
+          st = await sres.json();
+        } catch {
+          continue;  // vorübergehender Netzwerkfehler – weiter pollen
+        }
+
+        if (st.total > 0) {
+          btn.innerHTML = `<span class="spinner-sm"></span> ${st.deleted}/${st.total}`;
+        }
+
+        if (st.finished) {
+          deleteInProgress = false;
+          if (st.error) {
+            alert('Löschen abgebrochen: ' + st.error);
+            resetBtn();
+          } else {
+            if (st.failed > 0) {
+              alert(`${st.deleted} Videos gelöscht, ${st.failed} konnten nicht gelöscht werden.`);
+            }
+            window.location.reload();
+          }
+          return;
+        }
+      }
+    } catch(e) {
+      deleteInProgress = false;
+      alert('Netzwerkfehler: ' + e);
+      resetBtn();
+    }
+  }
+
+
+  // ── System Scharf/Unscharf umschalten (Schloss-Symbol) ──
+  async function toggleSyncArm(btn, syncName) {
+    const currentlyOn = btn.classList.contains('on');
+    const newState = !currentlyOn;
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/sync/arm', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({sync: syncName, enable: newState}),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        btn.classList.toggle('on', data.armed);
+      } else {
+        alert('Fehler: ' + (data.detail || 'Unbekannter Fehler'));
+      }
+    } catch (e) {
+      alert('Netzwerkfehler: ' + e);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Bewegungserkennung umschalten (pro Kamera) ────
+  async function toggleMotion(btn, camName) {
+    const currentlyOn = btn.classList.contains('on');
+    const newState = !currentlyOn;
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/camera/motion', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({camera: camName, enable: newState}),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        btn.classList.toggle('on', data.motion_enabled);
+      } else {
+        alert('Fehler: ' + (data.detail || 'Unbekannter Fehler'));
+      }
+    } catch (e) {
+      alert('Netzwerkfehler: ' + e);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function refreshCameraStatus() {
+    try {
+      const r = await fetch('/api/status');
+
+      // Session abgelaufen -> zurück zur Anmeldung (inkl. 2FA)
+      if (r.status === 401) {
+        window.location.href = '/';
+        return;
+      }
+
+      const d = await r.json();
+      if (d.logged_in === false) {
+        window.location.href = '/';
+        return;
+      }
+
+      // System Scharf/Unscharf-Schalter aktualisieren – Zuordnung per Name, nicht per Index
+      const syncChips = document.querySelectorAll('#sync-strip .cam-chip');
+      (d.syncs || []).forEach((s) => {
+        const chip = Array.from(syncChips).find(
+          c => c.querySelector('.chip-name')?.textContent === s.name
+        );
+        if (!chip) return;
+        const toggle = chip.querySelector('.motion-toggle');
+        if (toggle && !toggle.disabled) {
+          toggle.classList.toggle('on', !!s.armed);
+        }
+      });
+
+      // Pro-Kamera-Status aktualisieren – Zuordnung per Name, nicht per Index
+      const camChips = document.querySelectorAll('#status-strip .cam-chip');
+      d.cameras.forEach((cam) => {
+        const chip = Array.from(camChips).find(
+          c => c.querySelector('.chip-name')?.textContent === cam.name
+        );
+        if (!chip) return;
+        const meta = chip.querySelector('.chip-meta');
+        const dot  = chip.querySelector('.dot');
+        const toggle = chip.querySelector('.motion-toggle');
+        if (meta) {
+          const batt = cam.battery !== 'n/a' ? `${cam.battery} mV` : '';
+          const wifi = cam.wifi    !== 'n/a' ? `${cam.wifi} dBm` : '';
+          meta.textContent = [batt, wifi].filter(Boolean).join(' · ') || '—';
+        }
+        if (dot && cam.battery !== 'n/a') {
+          if (parseInt(cam.battery) < 2000) dot.classList.add('warn');
+        }
+        // Schalter nicht aktualisieren während der Nutzer ihn gerade bedient
+        if (toggle && !toggle.disabled) {
+          toggle.classList.toggle('on', !!cam.motion);
+        }
+      });
+    } catch {}
+  }
+
+  refreshCameraStatus();
+
+  // ── Vereinheitlichter Poll-Zyklus (POLL_INTERVAL_SECONDS) ──
+  // Steuert gleichzeitig: Countdown-Anzeige, Arm-/Bewegungsstatus-Sync
+  // und vollständigen Seiten-Reload für die Clip-Synchronisation.
+  const POLL_INTERVAL_SECONDS = {{ poll_interval }};
+  let countdown = POLL_INTERVAL_SECONDS;
+  const countdownEl = document.getElementById('refresh-countdown');
+
+  setInterval(() => {
+    countdown -= 1;
+
+    if (countdown <= 0) {
+      const modalOpen = document.getElementById('modal').classList.contains('open');
+      if (modalOpen || deleteInProgress) {
+        // Reload verschieben solange der Player offen ist oder gelöscht wird
+        refreshCameraStatus();
+        countdown = POLL_INTERVAL_SECONDS;
+      } else {
+        window.location.reload();
+        return;
+      }
+    }
+
+    if (countdownEl) countdownEl.textContent = countdown;
+  }, 1000);
+</script>
+</body>
+</html>

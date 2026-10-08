@@ -1,0 +1,12 @@
+services:
+  blink-dashboard:
+    build: .
+    container_name: blink-dashboard
+    ports:
+      - "9999:9999"
+    volumes:
+      # Gesamtes data/-Verzeichnis einbinden – bleibt beim Neustart erhalten
+      - ./data:/app/data
+    environment:
+      - DATA_DIR=/app/data
+    restart: unless-stopped
