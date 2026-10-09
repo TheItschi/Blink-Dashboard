@@ -48,6 +48,29 @@ THUMB_CACHE_DIR_DEFAULT.mkdir(parents=True, exist_ok=True)
 # ──────────────────────────────────────────────
 PORT = 9999   # Web-Server Port – hier ändern falls gewünscht
 
+# Zeitzone für die Anzeige der Aufnahmezeiten.
+# Blink liefert alle Zeitstempel in UTC; ohne Umrechnung würde die Anzeige
+# um den UTC-Versatz abweichen (in Mitteleuropa 1–2 Stunden).
+# Quelle: Umgebungsvariable TZ (z.B. "Europe/Berlin"), sonst Systemzeit.
+_tz_name = os.environ.get("TZ", "").strip()
+DISPLAY_TZ = None  # None = lokale Zeit des Systems
+if _tz_name:
+    try:
+        from zoneinfo import ZoneInfo
+        DISPLAY_TZ = ZoneInfo(_tz_name)
+    except Exception:
+        pass  # Unbekannte Zone oder fehlende tzdata -> Systemzeit verwenden
+
+
+def _fmt_local(dt: datetime) -> str:
+    """Rechnet einen (UTC-)Zeitstempel in die Anzeige-Zeitzone um und formatiert ihn."""
+    try:
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(DISPLAY_TZ).strftime("%d.%m.%Y  %H:%M:%S")
+    except Exception:
+        return dt.strftime("%d.%m.%Y  %H:%M:%S")
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)-8s  %(message)s",
@@ -398,7 +421,7 @@ async def fetch_videos(days: int = 30) -> List[Dict]:
                     videos.append({
                         "device_name":  item.name,
                         "created_at":   created.isoformat(),
-                        "_ts_display":  created.strftime("%d.%m.%Y  %H:%M:%S"),
+                        "_ts_display":  _fmt_local(created),
                         "_ts_sort":     created.isoformat(),
                         "_item":        item,
                         "_manifest_id": manifest_id,
@@ -427,7 +450,7 @@ async def fetch_videos(days: int = 30) -> List[Dict]:
                             dt = dt.replace(tzinfo=timezone.utc)
                         if dt < cutoff:
                             continue
-                        v["_ts_display"] = dt.strftime("%d.%m.%Y  %H:%M:%S")
+                        v["_ts_display"] = _fmt_local(dt)
                         v["_ts_sort"]    = dt.isoformat()
                         v["_proxy_url"]  = video_proxy_url(v.get("media", ""))
                         v["_thumb_url"]  = thumb_proxy_url(v.get("thumbnail", "")) if v.get("thumbnail") else ""

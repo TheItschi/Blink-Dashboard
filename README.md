@@ -90,6 +90,13 @@ Alle Einstellungen stehen als Konstanten oben in `app.py`:
 | `POLL_INTERVAL_SECONDS` | `60` | Abgleich-Intervall für Clips und Status |
 | `THUMB_CACHE_SECONDS` | `300` | Gültigkeit des Kamera-Thumbnail-Caches |
 
+Die **Zeitzone** wird über die Umgebungsvariable `TZ` gesetzt (in
+`docker-compose.yml` vorbelegt mit `Europe/Berlin`). Blink liefert alle
+Zeitstempel in UTC; ohne passende Zone zeigt die Übersicht die Aufnahmezeiten
+um den UTC-Versatz verschoben an. Sommer- und Winterzeit werden automatisch
+berücksichtigt. Ohne gesetztes `TZ` gilt die Systemzeit — im Docker-Container
+ist das UTC.
+
 ---
 
 ## Projektstruktur
@@ -108,6 +115,8 @@ Zur Laufzeit entstehen zusätzlich `blink_credentials.json`, `thumb_cache/`,
 `video_cache/` und `blink_webapp.log` (bzw. alles unter `data/` im Container).
 Diese Dateien sind in `.gitignore` ausgeschlossen und gehören nicht ins
 Repository — `blink_credentials.json` enthält ein gültiges Zugriffstoken.
+Das Passwort wird bewusst **nicht** gespeichert; für die Token-Erneuerung
+genügt der Refresh-Token.
 
 ---
 
@@ -136,6 +145,7 @@ betreiben und nicht ungeschützt ins Internet stellen.
 | Vorschaubilder fehlen | ffmpeg installieren bzw. in `ffmpeg/` ablegen |
 | Erneute Anmeldung nötig | `data/blink_credentials.json` löschen und neu anmelden |
 | Port belegt | `PORT` in `app.py` und den Port in `docker-compose.yml` anpassen |
+| Aufnahmezeiten verschoben | `TZ` in `docker-compose.yml` auf die eigene Zeitzone setzen |
 | Änderungen greifen nicht | `docker compose up --build -d` (nicht nur `up`) |
 
 ---

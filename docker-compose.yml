@@ -9,4 +9,7 @@ services:
       - ./data:/app/data
     environment:
       - DATA_DIR=/app/data
+      # Zeitzone für die Anzeige der Aufnahmezeiten (Blink liefert UTC).
+      # Auf die eigene Zone anpassen, z.B. Europe/Vienna, America/New_York.
+      - TZ=Europe/Berlin
     restart: unless-stopped
