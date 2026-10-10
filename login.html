@@ -2,9 +2,15 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Blink – Anmelden</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Blink">
+<meta name="theme-color" content="#0d0f14">
 <style>
   :root {
     --bg:       #0d0f14;
@@ -30,6 +36,9 @@
     align-items: center;
     justify-content: center;
     padding: 1.5rem;
+    /* Notch / Home-Indicator im iOS-Homescreen-Modus freihalten */
+    padding-top:    max(1.5rem, env(safe-area-inset-top));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
   }
 
   /* subtle grid pattern */

@@ -538,6 +538,21 @@ async def favicon():
     return Response(content=svg, media_type="image/svg+xml")
 
 
+@app.get("/apple-touch-icon.png", include_in_schema=False)
+@app.get("/apple-touch-icon-precomposed.png", include_in_schema=False)
+async def apple_touch_icon():
+    """Icon für den iOS-Homescreen. iOS fragt beide Namen ohne Zutun der Seite ab."""
+    from fastapi.responses import Response
+    path = BASE_DIR / "apple-touch-icon.png"
+    if not path.exists():
+        raise HTTPException(status_code=404)
+    return Response(
+        content=path.read_bytes(),
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     if not is_logged_in():

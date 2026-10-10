@@ -17,6 +17,7 @@ COPY app.py .
 COPY login.html .
 COPY dashboard.html .
 COPY favicon.svg .
+COPY apple-touch-icon.png .
 
 # Persistente Verzeichnisse anlegen
 RUN mkdir -p /app/thumb_cache /app/video_cache
